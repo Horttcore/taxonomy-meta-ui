@@ -1,0 +1,32 @@
+.meta-field {
+	margin: 0 0 1.5rem;
+}
+
+#meta-list .meta_key {
+	margin: 0 0 5px;
+}
+
+#meta_value {
+	margin: .5rem 0;
+}
+
+#enternew,
+#cancelnew {
+	display: inline-block;
+	text-decoration: none;
+}
+
+#selectnew,
+#enternew {
+	display: inline-block;
+	margin-bottom: 5px;
+}
+
+#cancelnew {
+	margin-bottom: 1rem;
+}
+
+#meta_key,
+#cancelnew {
+	display: none;
+}
