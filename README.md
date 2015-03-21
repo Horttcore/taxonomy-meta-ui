@@ -31,7 +31,29 @@ delete_term_meta( $term_id, $meta_key, $meta_value = '' )
 
 get_term_meta( $term_id, $key, $single = FALSE)
 
+## Hooks
+
+### Filters
+
+#### `term_fields` - Add fields
+
+`add_filter( 'term_fields', function( $taxonomy, $term ){
+	return array(
+		'test' => array(
+			'name' => 'test', // Meta name
+			'label' => 'Test', // Meta value
+			'description' => 'This is a test' // Meta description
+		)
+	);
+} );`
+
 ## Changelog
+
+### 1.1
+
+* Added: `term_fields` filter
+* Enhancement: Create predefined meta fields
+* Changed: Term meta table renamed
 
 ### v1.0
 

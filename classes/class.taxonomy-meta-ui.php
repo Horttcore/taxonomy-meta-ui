@@ -20,7 +20,7 @@ final class Taxonomy_Meta_UI
 	 *
 	 * @var string
 	 **/
-	const version = '1.0.0';
+	const version = '1.1.0';
 
 
 
@@ -52,7 +52,7 @@ final class Taxonomy_Meta_UI
 
 		global $wpdb;
 
-		$wpdb->taxonomymeta =  $wpdb->prefix . 'taxonomymeta';
+		$wpdb->taxonomymeta =  $wpdb->prefix . 'term_meta';
 
 	} // END wpdb_table
 

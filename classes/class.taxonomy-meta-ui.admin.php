@@ -20,7 +20,7 @@ final class Taxonomy_Meta_UI_Admin
 	 *
 	 * @var string
 	 **/
-	protected $version = '1.0.0';
+	protected $version = '1.1.0';
 
 
 
@@ -29,7 +29,7 @@ final class Taxonomy_Meta_UI_Admin
 	 * Constructor
 	 *
 	 * @access public
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 */
 	public function __construct()
@@ -43,6 +43,15 @@ final class Taxonomy_Meta_UI_Admin
 		add_action( 'wp_loaded', array( $this, 'register_tax_hooks' ) );
 		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6);
 
+		add_filter( 'term_fields', function(){
+			return array(
+				'test' => array(
+					'name' => 'test',
+					'label' => 'TEST',
+					'description' => 'This is a test'
+				)
+			);
+		} );
 
 	} // END __construct
 
@@ -51,8 +60,10 @@ final class Taxonomy_Meta_UI_Admin
 	/**
 	 * Plugin activation
 	 *
-	 * @return void
-	 * @author Ralf Hortt
+	 * @static
+	 * @access public
+	 * @param bool $network_wide Network wide activation
+	 * @author Ralf Hortt <me@horttcore.de>
 	 **/
 	static public function activation( $network_wide )
 	{
@@ -85,7 +96,7 @@ final class Taxonomy_Meta_UI_Admin
 	 * Register javascripts
 	 *
 	 * @access public
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function admin_enqueue_scripts()
@@ -107,7 +118,7 @@ final class Taxonomy_Meta_UI_Admin
 	 * Register javascripts
 	 *
 	 * @access public
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function admin_enqueue_styles()
@@ -121,14 +132,18 @@ final class Taxonomy_Meta_UI_Admin
 
 
 	/**
-	 * Term thumbnail on add tag screen
+	 * Term meta on add tag screen
 	 *
 	 * @access public
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function add_form_fields()
 	{
+
+		$screen = get_current_screen();
+
+		$this->add_static_form_fields( get_taxonomy( $screen->taxonomy ) );
 
 		?>
 
@@ -158,11 +173,78 @@ final class Taxonomy_Meta_UI_Admin
 
 
 	/**
+	 * Term meta on add tag screen
+	 *
+	 * @access public
+	 * @param obj $taxonomy Taxonomy object
+	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since 1.1.0
+	 **/
+	public function add_static_form_fields( $taxonomy )
+	{
+
+		$fields = $this->get_static_fields();
+
+		if ( empty( $fields ) )
+			return;
+
+		foreach ( $fields as $field ) :
+
+			?>
+
+			<div class="form-field term-custom-fields term-custom-fields-new">
+
+				<label><?php echo $field['label'] ?></label>
+				<input name="meta_key[]" class="meta_key" id="meta_key" type="hidden" value="<?php echo $field['name'] ?>">
+				<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"></textarea>
+
+				<?php if ( isset( $field['description'] ) && '' !== $field['description'] ) : ?>
+
+					<?php echo apply_filters( 'the_content', $field['description'] ) ?>
+
+				<?php endif; ?>
+
+			</div>
+
+			<?php
+
+		endforeach;
+
+	} // END add_static_form_fields
+
+
+
+	/**
+	 * Get all static fields
+	 *
+	 * @access public
+	 * @return array Term meta fields
+	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since 1.1.0
+	 **/
+	private function get_static_fields()
+	{
+
+		$screen = get_current_screen();
+		$taxonomy = ( isset( $screen->taxonomy ) ) ? $screen->taxonomy : FALSE;
+		$term = ( isset( $_GET['tag_ID'] ) ) ? sanitize_text_field( $_GET['tag_ID'] ) : FALSE;
+
+		return apply_filters( 'term_fields', array(), $taxonomy, $term );
+
+	} // END get_static_fields
+
+
+
+	/**
 	 * Cleanup after term is deleted
 	 *
 	 * @access public
+	 * @param int $term_id Term ID
+	 * @param int $tt_id Taxonomy term ID
+	 * @param str $taxonomy Taxonomy slug
+	 * @param mixed $deleted_term Copy of the already-deleted term, in the form specified by the parent function. WP_Error otherwise.
 	 * @return void
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function delete_term( $term_id, $tt_id, $taxonomy, $deleted_term )
@@ -191,7 +273,7 @@ final class Taxonomy_Meta_UI_Admin
 	 *
 	 * @access public
 	 * @return void
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function dropdown_meta_fields()
@@ -222,51 +304,27 @@ final class Taxonomy_Meta_UI_Admin
 
 
 	/**
-	 * Delete term thumbnail
-	 *
-	 * @access protected
-	 * @param int $term_id Term ID
-	 * @param int $attachment_id Attachment ID
-	 * @author Ralf Hortt
-	 * @since  1.0.0
-	 **/
-	protected function delete_term_thumbnail( $term_id )
-	{
-
-		$term_id = intval( $term_id );
-
-		if ( 0 == $term_id )
-			return;
-
-		$options = get_option( 'taxonomy-meta-ui' );
-		unset( $options[$term_id] );
-		update_option( 'taxonomy-meta-ui', $options );
-
-	} // END delete_term_thumbnail
-
-
-
-	/**
 	 * Tag Color input field on edit tag screen
 	 *
 	 * @access public
 	 * @param obj $tag Tag object
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function edit_form_fields( $tag )
 	{
 
-		$term_id = $tag->term_id;
+		$this->edit_static_form_fields( $tag );
+
 		?>
 
 		<tr class="form-field">
 			<th scope="row" valign="top">
-				<label for="term-thumbnail"><?php _e( 'Custom Fields' ); ?></label>
+				<label for="term-meta"><?php _e( 'Custom Fields' ); ?></label>
 			</th>
 			<td>
 
-				<div id="meta-list"><?php $this->list_meta( $term_id ) ?></div>
+				<div id="meta-list"><?php $this->list_meta( $tag->term_id ) ?></div>
 
 				<div id="new-meta">
 
@@ -290,13 +348,62 @@ final class Taxonomy_Meta_UI_Admin
 	} // END edit_form_fields
 
 
+	/**
+	 * Static fields on edit term screen
+	 *
+	 * @access private
+	 * @param obj $tag Tag object
+	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since 1.1.0
+	 **/
+	private function edit_static_form_fields( $tag )
+	{
+
+		$static_fields = $this->get_static_fields();
+
+		if ( empty( $static_fields ) )
+			return;
+
+		foreach ( $static_fields as $static_field ) :
+
+			if ( !isset( $static_field['name'] ) || '' === $static_field['name'] )
+				continue;
+
+			?>
+
+			<tr class="form-field">
+				<th scope="row" valign="top">
+					<label for="<?php echo esc_attr( $static_field['name'] ) ?>"><?php echo $static_field['label'] ?></label>
+				</th>
+				<td>
+					<input name="meta_key[]" class="meta_key" type="hidden" value="<?php echo esc_attr( $static_field['name'] ) ?>">
+					<textarea name="meta_value[]" class="meta_value" id="<?php echo esc_attr( $static_field['name'] ) ?>" rows="2" placeholder="<?php _e( 'Value' ) ?>"><?php echo wp_kses_post( get_term_meta( $tag->term_id, $static_field['name'], TRUE ) ) ?></textarea>
+
+					<?php if ( isset( $static_field['description'] ) && '' !== $static_field['description'] ) : ?>
+
+						<div class="field-description">
+							<?php echo apply_filters( 'the_content', $static_field['description'] ) ?>
+						</div><!-- .field-description -->
+
+					<?php endif; ?>
+
+				</td>
+			</tr>
+
+			<?php
+
+		endforeach;
+
+	} // END edit_static_form_fields
+
+
 
 	/**
 	 * list meta
 	 *
 	 * @access private
 	 * @param obj $tag Tag object
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 * @todo Update meta button
 	 **/
@@ -304,6 +411,8 @@ final class Taxonomy_Meta_UI_Admin
 	{
 
 		global $wpdb;
+
+		$screen = get_current_screen();
 
 		$sql = "SELECT * FROM $wpdb->taxonomymeta WHERE taxonomy_id = %d";
 		$meta = $wpdb->get_results( $wpdb->prepare( $sql, intval( $term_id  ) ) );
@@ -313,15 +422,31 @@ final class Taxonomy_Meta_UI_Admin
 
 		foreach ( $meta as $m ) :
 
-			?>
+				if ( isset( $this->get_static_fields()[$m->meta_key] ) )
+					continue;
 
-			<div class="meta-field">
-				<input name="meta_key[]" class="meta_key" type="text" value="<?php echo esc_attr( $m->meta_key ) ?>" placeholder="<?php _e( 'Name' ) ?>">
-				<textarea name="meta_value[]" class="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"><?php echo esc_attr( $m->meta_value ) ?></textarea>
-				<a class="button delete-meta-button" href="#"><?php _e( 'Delete' ) ?></a> <!-- <a class="button update-meta-button" href="#"><?php _e( 'Update' ) ?></a> -->
-			</div>
+				?>
 
-			<?php
+				<div class="meta-field">
+
+					<input name="meta_key[]" class="meta_key" type="text" value="<?php echo esc_attr( $m->meta_key ) ?>" placeholder="<?php _e( 'Name' ) ?>">
+
+					<?php if ( isset( $m->label ) ) : ?>
+						<label>
+							<span class="meta-label"><?php echo $m->label ?></span><br>
+					<?php endif; ?>
+
+						<textarea name="meta_value[]" class="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"><?php echo esc_attr( $m->meta_value ) ?></textarea><br>
+
+					<?php if ( isset( $m->label ) ) : ?>
+						</label>
+					<?php endif; ?>
+
+					<a class="button delete-meta-button" href="#"><?php _e( 'Delete' ) ?></a> <!-- <a class="button update-meta-button" href="#"><?php _e( 'Update' ) ?></a> -->
+
+				</div><!-- .meta-field -->
+
+				<?php
 
 		endforeach;
 
@@ -333,7 +458,7 @@ final class Taxonomy_Meta_UI_Admin
 	 * Load plugin textdomain
 	 *
 	 * @access public
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 */
 	public function load_plugin_textdomain()
@@ -349,7 +474,7 @@ final class Taxonomy_Meta_UI_Admin
 	 * Register hooks
 	 *
 	 * @access public
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since  1.0.0
 	 **/
 	public function register_tax_hooks()
@@ -374,12 +499,12 @@ final class Taxonomy_Meta_UI_Admin
 
 
 	/**
-	 * Save new term thumbnail
+	 * Save new term meta
 	 *
 	 * @access public
 	 * @param int $term_id Term ID
 	 * @param int $tt_id Taxonomy term ID
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function save_term_meta( $term_id = FALSE, $tt_id = FALSE )
@@ -416,7 +541,7 @@ final class Taxonomy_Meta_UI_Admin
 		endforeach;
 
 
-	} // END created_term_thumbnail
+	} // END save_term_meta
 
 
 
@@ -426,14 +551,13 @@ final class Taxonomy_Meta_UI_Admin
 	 * @static
 	 * @access public
 	 * @param int $blog_id Blog ID
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since  1.0.0
 	 **/
 	static public function setup_blog( $blog_id = FALSE )
 	{
 
 		global $wpdb;
-
 
 		if ( $blog_id !== FALSE )
 			switch_to_blog( $blog_id );
@@ -446,7 +570,7 @@ final class Taxonomy_Meta_UI_Admin
 		if ( ! empty( $wpdb->collate ) )
 			$charset_collate .= " COLLATE $wpdb->collate";
 
-		$tables = $wpdb->get_results( "show tables like '{$wpdb->prefix}taxonomymeta'" );
+		$tables = $wpdb->get_results( "show tables like '{$wpdb->prefix}term_meta'" );
 
 		if ( !count( $tables ) )
 			$wpdb->query( "CREATE TABLE {$wpdb->prefix}taxonomymeta (
@@ -469,7 +593,7 @@ final class Taxonomy_Meta_UI_Admin
 	 * @static
 	 * @access public
 	 * @param int $blog_id Blog ID
-	 * @author Ralf Hortt
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since  1.0.0
 	 **/
 	static public function setup_new_blog( $blog_id, $user_id, $domain, $path, $site_id, $meta )

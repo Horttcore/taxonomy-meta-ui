@@ -30,3 +30,7 @@
 #cancelnew {
 	display: none;
 }
+
+.field-description {
+	font-style: italic;
+}

@@ -20,6 +20,20 @@ Custom field support for terms
 
 == Frequently Asked Questions ==
 
+= Filters =
+
+`term_fields - Add static fields`
+
+`add_filter( 'term_fields', function( $taxonomy, $term ){
+	return array(
+		'test' => array(
+			'name' => 'test', // Meta name
+			'label' => 'Test', // Meta value
+			'description' => 'This is a test' // Meta description
+		)
+	);
+} );`
+
 == Screenshots ==
 
 1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
@@ -34,7 +48,14 @@ None yet
 
 == Changelog ==
 
+= 1.1 =
+
+* Added: `term_fields` filter
+* Enhancement: Create predefined meta fields
+* Changed: Term meta table renamed
+
 = 1.0 =
+
 * Initial release
 
 == Arbitrary section ==
