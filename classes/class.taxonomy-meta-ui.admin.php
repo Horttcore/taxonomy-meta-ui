@@ -43,16 +43,6 @@ final class Taxonomy_Meta_UI_Admin
 		add_action( 'wp_loaded', array( $this, 'register_tax_hooks' ) );
 		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6);
 
-		add_filter( 'term_fields', function(){
-			return array(
-				'test' => array(
-					'name' => 'test',
-					'label' => 'TEST',
-					'description' => 'This is a test'
-				)
-			);
-		} );
-
 	} // END __construct
 
 
@@ -573,7 +563,7 @@ final class Taxonomy_Meta_UI_Admin
 		$tables = $wpdb->get_results( "show tables like '{$wpdb->prefix}term_meta'" );
 
 		if ( !count( $tables ) )
-			$wpdb->query( "CREATE TABLE {$wpdb->prefix}taxonomymeta (
+			$wpdb->query( "CREATE TABLE {$wpdb->prefix}term_meta (
 				meta_id bigint(20) unsigned NOT NULL auto_increment,
 				taxonomy_id bigint(20) unsigned NOT NULL default '0',
 				meta_key varchar(255) default NULL,
