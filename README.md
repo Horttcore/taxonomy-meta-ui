@@ -12,16 +12,16 @@ Custom field support for terms
 ## Screenshots
 
 ### New term screen with custom fields
-[![New term screen with custom fields](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-1.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-1.jpg)
+[![New term screen with custom fields](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-1.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-1.jpg)
 
 ### Edit term screen with custom fields
-[![Edit term screen with custom fields](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-2.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-2.jpg)
+[![Edit term screen with custom fields](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-2.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-2.jpg)
 
 ### New term screen with custom fields and static field `foo`
-[![New term screen with custom fields and static field `foo`](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-3.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-3.jpg)
+[![New term screen with custom fields and static field `foo`](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-3.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-3.jpg)
 
 ### Edit term screen with custom fields and static field `foo`
-[![Edit term screen with custom fields and static field `foo`](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-4.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/screenshot-4.jpg)
+[![Edit term screen with custom fields and static field `foo`](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-4.jpg)](https://github.com/Horttcore/taxonomy-meta-ui/blob/master/screenshot-4.jpg)
 
 ## Usage
 
