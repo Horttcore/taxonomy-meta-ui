@@ -12,7 +12,7 @@ Custom field support for terms
 
 == Description ==
 
-Custom field support for terms
+Add as many custom values as you want, or define static fields which are always visible.
 
 == Installation ==
 
@@ -22,31 +22,40 @@ Custom field support for terms
 
 = Filters =
 
-`term_fields - Add static fields`
+Add static fields to all taxonomies
+`term_fields`
 
-`add_filter( 'term_fields', function( $taxonomy, $term ){
-	return array(
-		'test' => array(
-			'name' => 'test', // Meta name
-			'label' => 'Test', // Meta value
-			'description' => 'This is a test' // Meta description
-		)
-	);
-} );`
+Add static fields for $taxonomy
+`term_fields_$taxonomy`
+
+Remove all custom field support
+`has_custom_fields`
+
+Remove custom field support for $taxonomy
+`$taxonomy_has_custom_fields`
 
 == Screenshots ==
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif). Note that the screenshot is taken from
-the /assets directory or the directory that contains the stable readme.txt (tags or trunk). Screenshots in the /assets
-directory take precedence. For example, `/assets/screenshot-1.png` would win over `/tags/4.3/screenshot-1.png`
-(or jpg, jpeg, gif).
-2. This is the second screen shot
+1. New term screen with custom fields
+2. Edit term screen with custom fields
+3. New term screen with custom fields and static field `foo`
+4. Edit term screen with custom fields and static field `foo`
 
 == Upgrade Notice ==
 
 None yet
 
 == Changelog ==
+
+= 1.2 =
+
+* Added: `term_fields_$taxonomy` filter
+* Added: `$taxonomy_has_custom_fields` filter
+* Added: `has_custom_fields` filter
+* Added: `$taxonomy_has_custom_fields` filter
+* Added: Deinstall routine
+* Added: Placeholder parameter for static fields
+* Removed: `taxonomy-meta-taxonomies filter
 
 = 1.1 =
 

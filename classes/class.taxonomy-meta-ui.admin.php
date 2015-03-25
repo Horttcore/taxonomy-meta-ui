@@ -20,7 +20,16 @@ final class Taxonomy_Meta_UI_Admin
 	 *
 	 * @var string
 	 **/
-	protected $version = '1.1.0';
+	protected $version = '1.2.0';
+
+
+
+	/**
+	 * Plugin basename
+	 *
+	 * @var string
+	 **/
+	static protected $plugin_basename = '';
 
 
 
@@ -37,11 +46,23 @@ final class Taxonomy_Meta_UI_Admin
 
 		add_action( 'admin_print_scripts-edit-tags.php', array( $this, 'admin_enqueue_scripts' ) );
 		add_action( 'admin_print_scripts-edit-tags.php', array( $this, 'admin_enqueue_styles' ) );
+		add_action( 'admin_print_scripts-plugins.php', array( $this, 'admin_enqueue_option_script' ) );
+		add_action( 'wp_ajax_taxonomy-meta-ui-delete-tables', array( $this, 'set_delete_tables_option' ) );
 		add_action( 'delete_term', array( $this, 'delete_term' ), 10, 4 );
 		add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );
 		add_action( 'switch_blog', array($this, 'wpdb_table') );
 		add_action( 'wp_loaded', array( $this, 'register_tax_hooks' ) );
 		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6);
+
+		add_filter( 'term_fields', function( $taxonomy ){
+			return array(
+				'foo' => array(
+					'name' => 'foo', // Meta name
+					'label' => 'Foo', // Meta value
+					'description' => 'This is a bar' // Meta description
+				)
+			);
+		} );
 
 	} // END __construct
 
@@ -109,6 +130,26 @@ final class Taxonomy_Meta_UI_Admin
 	 *
 	 * @access public
 	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since 1.2.0
+	 **/
+	public function admin_enqueue_option_script()
+	{
+
+		wp_register_script( 'taxonomy-meta-ui-options', plugins_url( '../scripts/options.js', __FILE__ ), array(), $this->version, TRUE );
+		wp_localize_script( 'taxonomy-meta-ui-options', 'taxonomyMetaUI', array(
+			'nonce' => wp_create_nonce( 'taxonomy-meta-ui-options' ),
+		) );
+		wp_enqueue_script( 'taxonomy-meta-ui-options' );
+
+	} // admin_enqueue_option_script
+
+
+
+	/**
+	 * Register javascripts
+	 *
+	 * @access public
+	 * @author Ralf Hortt <me@horttcore.de>
 	 * @since 1.0.0
 	 **/
 	public function admin_enqueue_styles()
@@ -134,6 +175,12 @@ final class Taxonomy_Meta_UI_Admin
 		$screen = get_current_screen();
 
 		$this->add_static_form_fields( get_taxonomy( $screen->taxonomy ) );
+
+		if ( FALSE === apply_filters( $screen->taxonomy . '_has_custom_fields', TRUE ) )
+			return;
+
+		if ( FALSE === apply_filters( 'has_custom_fields', TRUE ) )
+			return;
 
 		?>
 
@@ -186,7 +233,7 @@ final class Taxonomy_Meta_UI_Admin
 
 				<label><?php echo $field['label'] ?></label>
 				<input name="meta_key[]" class="meta_key" id="meta_key" type="hidden" value="<?php echo $field['name'] ?>">
-				<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"></textarea>
+				<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="<?php if ( isset( $field['placeholder'] ) ) echo esc_attr( $field['placeholder'] ) ?>"></textarea>
 
 				<?php if ( isset( $field['description'] ) && '' !== $field['description'] ) : ?>
 
@@ -217,9 +264,10 @@ final class Taxonomy_Meta_UI_Admin
 
 		$screen = get_current_screen();
 		$taxonomy = ( isset( $screen->taxonomy ) ) ? $screen->taxonomy : FALSE;
-		$term = ( isset( $_GET['tag_ID'] ) ) ? sanitize_text_field( $_GET['tag_ID'] ) : FALSE;
+		$term_id = ( isset( $_GET['tag_ID'] ) ) ? sanitize_text_field( $_GET['tag_ID'] ) : FALSE;
+		$fields = apply_filters( 'term_fields_' . $taxonomy, array(), $term_id );
 
-		return apply_filters( 'term_fields', array(), $taxonomy, $term );
+		return apply_filters( 'term_fields', $fields, $taxonomy, $term_id );
 
 	} // END get_static_fields
 
@@ -338,6 +386,7 @@ final class Taxonomy_Meta_UI_Admin
 	} // END edit_form_fields
 
 
+
 	/**
 	 * Static fields on edit term screen
 	 *
@@ -349,30 +398,30 @@ final class Taxonomy_Meta_UI_Admin
 	private function edit_static_form_fields( $tag )
 	{
 
-		$static_fields = $this->get_static_fields();
+		$fields = $this->get_static_fields();
 
-		if ( empty( $static_fields ) )
+		if ( empty( $fields ) )
 			return;
 
-		foreach ( $static_fields as $static_field ) :
+		foreach ( $fields as $field ) :
 
-			if ( !isset( $static_field['name'] ) || '' === $static_field['name'] )
+			if ( !isset( $field['name'] ) || '' === $field['name'] )
 				continue;
 
 			?>
 
 			<tr class="form-field">
 				<th scope="row" valign="top">
-					<label for="<?php echo esc_attr( $static_field['name'] ) ?>"><?php echo $static_field['label'] ?></label>
+					<label for="<?php echo esc_attr( $field['name'] ) ?>"><?php echo $field['label'] ?></label>
 				</th>
 				<td>
-					<input name="meta_key[]" class="meta_key" type="hidden" value="<?php echo esc_attr( $static_field['name'] ) ?>">
-					<textarea name="meta_value[]" class="meta_value" id="<?php echo esc_attr( $static_field['name'] ) ?>" rows="2" placeholder="<?php _e( 'Value' ) ?>"><?php echo wp_kses_post( get_term_meta( $tag->term_id, $static_field['name'], TRUE ) ) ?></textarea>
+					<input name="meta_key[]" class="meta_key" type="hidden" value="<?php echo esc_attr( $field['name'] ) ?>">
+					<textarea name="meta_value[]" class="meta_value" id="<?php echo esc_attr( $field['name'] ) ?>" rows="2" placeholder="<?php if ( isset( $field['placeholder'] ) ) echo esc_attr( $field['placeholder'] ) ?>"><?php echo wp_kses_post( get_term_meta( $tag->term_id, $field['name'], TRUE ) ) ?></textarea>
 
-					<?php if ( isset( $static_field['description'] ) && '' !== $static_field['description'] ) : ?>
+					<?php if ( isset( $field['description'] ) && '' !== $field['description'] ) : ?>
 
 						<div class="field-description">
-							<?php echo apply_filters( 'the_content', $static_field['description'] ) ?>
+							<?php echo apply_filters( 'the_content', $field['description'] ) ?>
 						</div><!-- .field-description -->
 
 					<?php endif; ?>
@@ -461,6 +510,52 @@ final class Taxonomy_Meta_UI_Admin
 
 
 	/**
+	 * Plugin action links
+	 *
+	 * @access public
+	 * @param array $links Links
+	 * @return array Links
+	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since  1.2.0
+	 **/
+	static public function plugin_action_links( $links )
+	{
+
+		$links[] = '<a href="https://github.com/Horttcore/taxonomy-meta-ui" target="_blank">' . __( 'Documentation' ) . '</a>';
+
+		// Remove database tables only for delete plugins
+		if ( !current_user_can( 'delete_plugins' ) )
+			return $links;
+
+		$links[] = '<label style="color:#0074a2" title="' . __( 'Remove database tables on plugin deletion', 'taxonomy-meta-ui' ) . '">
+						<input id="taxonomy-meta-ui-delete-tables" ' . checked( 'true', get_option( 'taxonomy-meta-ui-delete-tables') ) . ' type="checkbox"> ' . __( 'Delete data', 'taxonomy-meta-ui' ) . '
+						<span class="dashicons dashicons-editor-help"></span>
+					</label>';
+
+		return $links;
+
+	} // END plugin_action_links
+
+
+
+	/**
+	 * Set plugin basename
+	 *
+	 * @access public
+	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since  1.2.0
+	 **/
+	static public function plugin_basename( $basename )
+	{
+
+		self::$plugin_basename = $basename;
+		add_filter( 'plugin_action_links_' . self::$plugin_basename, 'Taxonomy_Meta_UI_Admin::plugin_action_links' );
+
+	} // END plugin_basename
+
+
+
+	/**
 	 * Register hooks
 	 *
 	 * @access public
@@ -470,11 +565,11 @@ final class Taxonomy_Meta_UI_Admin
 	public function register_tax_hooks()
 	{
 
-		$taxonomies = apply_filters( 'taxonomy-meta-taxonomies', get_taxonomies() );
+		$taxonomies = get_taxonomies();
 
 		foreach ( $taxonomies as $taxonomy ) :
 
-			if ( FALSE === apply_filters( $taxonomy . '-has-meta', TRUE ) )
+			if ( FALSE === apply_filters( $taxonomy . '_has_meta', TRUE ) )
 				continue;
 
 			add_action( $taxonomy . '_add_form_fields', array( $this, 'add_form_fields' ) );
@@ -549,6 +644,7 @@ final class Taxonomy_Meta_UI_Admin
 
 		global $wpdb;
 
+
 		if ( $blog_id !== FALSE )
 			switch_to_blog( $blog_id );
 
@@ -574,6 +670,29 @@ final class Taxonomy_Meta_UI_Admin
 			) $charset_collate;" );
 
 	} // END setup_blog
+
+
+
+	/**
+	 * Ajax: Set delete table options
+	 *
+	 * @access public
+	 * @author Ralf Hortt <me@horttcore.de>
+	 * @since  1.2.0
+	 **/
+	public function set_delete_tables_option()
+	{
+
+		if ( !current_user_can( 'manage_options' ) )
+			return;
+
+		if ( !wp_verify_nonce( $_POST['nonce'], 'taxonomy-meta-ui-options' ) )
+			return;
+
+		update_option( 'taxonomy-meta-ui-delete-tables', $_POST['value'] );
+		die('1');
+
+	} // END set_delete_tables_option
 
 
 

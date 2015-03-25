@@ -9,6 +9,20 @@ Custom field support for terms
 
 * Put the plugin in your plugin directory and activate it in your WordPress backend.
 
+## Screenshots
+
+### New term screen with custom fields
+[![New term screen with custom fields](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-1.jpg)](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-1.jpg)
+
+### Edit term screen with custom fields
+[![Edit term screen with custom fields](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-2.jpg)](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-2.jpg)
+
+### New term screen with custom fields and static field `foo`
+[![New term screen with custom fields and static field `foo`](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-3.jpg)](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-3.jpg)
+
+### Edit term screen with custom fields and static field `foo`
+[![Edit term screen with custom fields and static field `foo`](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-4.jpg)](https://raw.github.com/Horttcore/taxonomy-meta-ui/master/screenshot-4.jpg)
+
 ## Usage
 
 Visit any term page and add term meta data
@@ -35,19 +49,29 @@ get_term_meta( $term_id, $key, $single = FALSE)
 
 ### Filters
 
-#### `term_fields` - Add fields
+Add static fields to all taxonomies
+`term_fields`
 
-`add_filter( 'term_fields', function( $taxonomy, $term ){
-	return array(
-		'test' => array(
-			'name' => 'test', // Meta name
-			'label' => 'Test', // Meta value
-			'description' => 'This is a test' // Meta description
-		)
-	);
-} );`
+Add static fields for $taxonomy
+`term_fields_$taxonomy`
+
+Remove all custom field support
+`has_custom_fields`
+
+Remove custom field support for $taxonomy
+`$taxonomy_has_custom_fields`
 
 ## Changelog
+
+### 1.2
+
+* Added: `term_fields_$taxonomy` filter
+* Added: `$taxonomy_has_custom_fields` filter
+* Added: `has_custom_fields` filter
+* Added: `$taxonomy_has_custom_fields` filter
+* Added: Deinstall routine
+* Added: Placeholder parameter for static fields
+* Removed: `taxonomy-meta-taxonomies filter
 
 ### 1.1
 

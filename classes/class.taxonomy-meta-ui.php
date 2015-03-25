@@ -20,7 +20,7 @@ final class Taxonomy_Meta_UI
 	 *
 	 * @var string
 	 **/
-	const version = '1.1.0';
+	const version = '1.2.0';
 
 
 
@@ -46,6 +46,7 @@ final class Taxonomy_Meta_UI
 	 *
 	 * @return void
 	 * @author Ralf Hortt
+	 * @since 1.0.0
 	 **/
 	public function wpdb_table()
 	{
