@@ -54,16 +54,6 @@ final class Taxonomy_Meta_UI_Admin
 		add_action( 'wp_loaded', array( $this, 'register_tax_hooks' ) );
 		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6);
 
-		add_filter( 'term_fields', function( $taxonomy ){
-			return array(
-				'foo' => array(
-					'name' => 'foo', // Meta name
-					'label' => 'Foo', // Meta value
-					'description' => 'This is a bar' // Meta description
-				)
-			);
-		} );
-
 	} // END __construct
 
 
