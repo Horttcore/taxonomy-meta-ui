@@ -1,4 +1,5 @@
 <?php
+if ( !function_exists( 'add_term_meta' ) ) :
 /**
  * Add meta data field to a term.
  *
@@ -13,9 +14,11 @@ function add_term_meta( $term_id, $meta_key, $meta_value, $unique = FALSE ) {
 	return add_metadata( 'taxonomy', $term_id, $meta_key, $meta_value, $unique );
 
 }
+endif;
 
 
 
+if ( !function_exists( 'delete_term_meta' ) ) :
 /**
  * Remove metadata matching criteria from a term.
  *
@@ -34,9 +37,11 @@ function delete_term_meta( $term_id, $meta_key, $meta_value = '' )
 	return delete_metadata( 'taxonomy', $term_id, $meta_key, $meta_value );
 
 }
+endif;
 
 
 
+if ( !function_exists( 'get_term_meta' ) ) :
 /**
  * Retrieve term meta field for a term.
  *
@@ -52,9 +57,11 @@ function get_term_meta( $term_id, $key, $single = FALSE)
 	return get_metadata( 'taxonomy', $term_id, $key, $single );
 
 }
+endif;
 
 
 
+if ( !function_exists( 'update_term_meta' ) ) :
 /**
  * Update term meta field based on term ID.
  *
@@ -75,3 +82,4 @@ function update_term_meta( $term_id, $meta_key, $meta_value, $prev_value = '' )
 	return update_metadata( 'taxonomy', $term_id, $meta_key, $meta_value, $prev_value );
 
 }
+endif;
