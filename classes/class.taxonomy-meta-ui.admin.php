@@ -20,17 +20,7 @@ final class Taxonomy_Meta_UI_Admin
 	 *
 	 * @var string
 	 **/
-	protected $version = '1.2.0';
-
-
-
-	/**
-	 * Plugin basename
-	 *
-	 * @var string
-	 **/
-	static protected $plugin_basename = '';
-
+	protected $version = '1.3.0';
 
 
 	/**
@@ -44,53 +34,15 @@ final class Taxonomy_Meta_UI_Admin
 	public function __construct()
 	{
 
-		add_action( 'admin_print_scripts-edit-tags.php', array( $this, 'admin_enqueue_scripts' ) );
-		add_action( 'admin_print_scripts-edit-tags.php', array( $this, 'admin_enqueue_styles' ) );
-		add_action( 'admin_print_scripts-plugins.php', array( $this, 'admin_enqueue_option_script' ) );
-		add_action( 'wp_ajax_taxonomy-meta-ui-delete-tables', array( $this, 'set_delete_tables_option' ) );
-		add_action( 'delete_term', array( $this, 'delete_term' ), 10, 4 );
-		add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );
-		add_action( 'switch_blog', array($this, 'wpdb_table') );
-		add_action( 'wp_loaded', array( $this, 'register_tax_hooks' ) );
-		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6);
+		add_action( 'admin_print_scripts-edit-tags.php', [$this, 'admin_enqueue_scripts'] );
+		add_action( 'admin_print_scripts-edit-tags.php', [$this, 'admin_enqueue_styles']) ;
+		add_action( 'admin_print_scripts-term.php', [$this, 'admin_enqueue_scripts'] );
+		add_action( 'admin_print_scripts-term.php', [$this, 'admin_enqueue_styles']) ;
+		add_action( 'plugins_loaded', [$this, 'load_plugin_textdomain'] );
+		add_action( 'wp_loaded', [$this, 'register_tax_hooks'] );
+		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6 );
 
 	} // END __construct
-
-
-
-	/**
-	 * Plugin activation
-	 *
-	 * @static
-	 * @access public
-	 * @param bool $network_wide Network wide activation
-	 * @author Ralf Hortt <me@horttcore.de>
-	 **/
-	static public function activation( $network_wide )
-	{
-
-		// Network
-		if ( $network_wide ) :
-
-			$blogs = wp_get_sites();
-
-			foreach ( $blogs as $blog ) :
-
-				Taxonomy_Meta_UI_Admin::setup_blog( $blog['blog_id'] );
-
-			endforeach;
-
-			restore_current_blog();
-
-		// Single
-		else :
-
-			Taxonomy_Meta_UI_Admin::setup_blog();
-
-		endif;
-
-	} // END activation
-
 
 
 	/**
@@ -102,7 +54,6 @@ final class Taxonomy_Meta_UI_Admin
 	 **/
 	public function admin_enqueue_scripts()
 	{
-
 		wp_register_script( 'taxonomy-meta-ui', plugins_url( '../scripts/scripts.js', __FILE__ ), array(), $this->version, TRUE );
 		wp_localize_script( 'taxonomy-meta-ui', 'taxonomyMetaUI', array(
 			'name' => __( 'Name' ),
@@ -114,27 +65,6 @@ final class Taxonomy_Meta_UI_Admin
 	} // END admin_enqueue_scripts
 
 
-
-	/**
-	 * Register javascripts
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.2.0
-	 **/
-	public function admin_enqueue_option_script()
-	{
-
-		wp_register_script( 'taxonomy-meta-ui-options', plugins_url( '../scripts/options.js', __FILE__ ), array(), $this->version, TRUE );
-		wp_localize_script( 'taxonomy-meta-ui-options', 'taxonomyMetaUI', array(
-			'nonce' => wp_create_nonce( 'taxonomy-meta-ui-options' ),
-		) );
-		wp_enqueue_script( 'taxonomy-meta-ui-options' );
-
-	} // admin_enqueue_option_script
-
-
-
 	/**
 	 * Register javascripts
 	 *
@@ -144,12 +74,10 @@ final class Taxonomy_Meta_UI_Admin
 	 **/
 	public function admin_enqueue_styles()
 	{
-
 		wp_register_style( 'taxonomy-meta-ui', plugins_url( '../styles/styles.css', __FILE__ ), array(), $this->version );
 		wp_enqueue_style( 'taxonomy-meta-ui' );
 
 	} // END admin_enqueue_scripts
-
 
 
 	/**
@@ -198,7 +126,6 @@ final class Taxonomy_Meta_UI_Admin
 	} // END add_form_fields
 
 
-
 	/**
 	 * Term meta on add tag screen
 	 *
@@ -240,7 +167,6 @@ final class Taxonomy_Meta_UI_Admin
 	} // END add_static_form_fields
 
 
-
 	/**
 	 * Get all static fields
 	 *
@@ -262,40 +188,6 @@ final class Taxonomy_Meta_UI_Admin
 	} // END get_static_fields
 
 
-
-	/**
-	 * Cleanup after term is deleted
-	 *
-	 * @access public
-	 * @param int $term_id Term ID
-	 * @param int $tt_id Taxonomy term ID
-	 * @param str $taxonomy Taxonomy slug
-	 * @param mixed $deleted_term Copy of the already-deleted term, in the form specified by the parent function. WP_Error otherwise.
-	 * @return void
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function delete_term( $term_id, $tt_id, $taxonomy, $deleted_term )
-	{
-
-		global $wpdb;
-
-		$sql = "SELECT * FROM $wpdb->taxonomymeta WHERE taxonomy_id = %d";
-		$meta = $wpdb->get_results( $wpdb->prepare( $sql, intval( $term_id  ) ) );
-
-		if ( !$meta )
-			return;
-
-		foreach ( $meta as $m ) :
-
-			delete_term_meta( $term_id, $m->meta_key );
-
-		endforeach;
-
-	} // END delete_term
-
-
-
 	/**
 	 * Dropdown for term meta
 	 *
@@ -311,7 +203,7 @@ final class Taxonomy_Meta_UI_Admin
 
 		$limit = apply_filters( 'postmeta_form_limit', 30 );
 		$sql = "SELECT meta_key
-			FROM $wpdb->taxonomymeta
+			FROM $wpdb->termmeta
 			GROUP BY meta_key
 			HAVING meta_key NOT LIKE %s
 			ORDER BY meta_key
@@ -328,7 +220,6 @@ final class Taxonomy_Meta_UI_Admin
 		<?php
 
 	} // END dropdown_meta_fields
-
 
 
 	/**
@@ -374,7 +265,6 @@ final class Taxonomy_Meta_UI_Admin
 		<?php
 
 	} // END edit_form_fields
-
 
 
 	/**
@@ -426,7 +316,6 @@ final class Taxonomy_Meta_UI_Admin
 	} // END edit_static_form_fields
 
 
-
 	/**
 	 * list meta
 	 *
@@ -443,7 +332,7 @@ final class Taxonomy_Meta_UI_Admin
 
 		$screen = get_current_screen();
 
-		$sql = "SELECT * FROM $wpdb->taxonomymeta WHERE taxonomy_id = %d";
+		$sql = "SELECT * FROM $wpdb->termmeta WHERE term_id = %d";
 		$meta = $wpdb->get_results( $wpdb->prepare( $sql, intval( $term_id  ) ) );
 
 		if ( !$meta )
@@ -482,7 +371,6 @@ final class Taxonomy_Meta_UI_Admin
 	} // END list_meta
 
 
-
 	/**
 	 * Load plugin textdomain
 	 *
@@ -496,53 +384,6 @@ final class Taxonomy_Meta_UI_Admin
 		load_plugin_textdomain( 'taxonomy-meta-ui', false, dirname( plugin_basename( __FILE__ ) ) . '/../languages/' );
 
 	} // END load_plugin_textdomain
-
-
-
-	/**
-	 * Plugin action links
-	 *
-	 * @access public
-	 * @param array $links Links
-	 * @return array Links
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since  1.2.0
-	 **/
-	static public function plugin_action_links( $links )
-	{
-
-		$links[] = '<a href="https://github.com/Horttcore/taxonomy-meta-ui" target="_blank">' . __( 'Documentation' ) . '</a>';
-
-		// Remove database tables only for delete plugins
-		if ( !current_user_can( 'delete_plugins' ) )
-			return $links;
-
-		$links[] = '<label style="color:#0074a2" title="' . __( 'Remove database tables on plugin deletion', 'taxonomy-meta-ui' ) . '">
-						<input id="taxonomy-meta-ui-delete-tables" ' . checked( 'true', get_option( 'taxonomy-meta-ui-delete-tables') ) . ' type="checkbox"> ' . __( 'Delete data', 'taxonomy-meta-ui' ) . '
-						<span class="dashicons dashicons-editor-help"></span>
-					</label>';
-
-		return $links;
-
-	} // END plugin_action_links
-
-
-
-	/**
-	 * Set plugin basename
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since  1.2.0
-	 **/
-	static public function plugin_basename( $basename )
-	{
-
-		self::$plugin_basename = $basename;
-		add_filter( 'plugin_action_links_' . self::$plugin_basename, 'Taxonomy_Meta_UI_Admin::plugin_action_links' );
-
-	} // END plugin_basename
-
 
 
 	/**
@@ -562,15 +403,14 @@ final class Taxonomy_Meta_UI_Admin
 			if ( FALSE === apply_filters( $taxonomy . '_has_meta', TRUE ) )
 				continue;
 
-			add_action( $taxonomy . '_add_form_fields', array( $this, 'add_form_fields' ) );
-			add_action( $taxonomy . '_edit_form_fields', array( $this, 'edit_form_fields' ) );
+			add_action( $taxonomy . '_add_form_fields', [$this, 'add_form_fields']);
+			add_action( $taxonomy . '_edit_form_fields', [$this, 'edit_form_fields']);
 			add_action( 'edited_' . $taxonomy, array( $this , 'save_term_meta' ), 10, 2 );
 			add_action( 'created_' . $taxonomy, array( $this , 'save_term_meta' ), 10, 2 );
 
 		endforeach;
 
 	} // END register_tax_hooks
-
 
 
 	/**
@@ -599,91 +439,11 @@ final class Taxonomy_Meta_UI_Admin
 
 			update_term_meta( $term_id, $meta_key, $_POST['meta_value'][$i] );
 			$meta_keys[] = $meta_key;
-
 			$i++;
 
 		endforeach;
 
-		// Remove unused meta data
-		$sql = "SELECT * FROM $wpdb->taxonomymeta WHERE taxonomy_id = %d";
-		$meta = $wpdb->get_results( $wpdb->prepare( $sql, intval( $term_id  ) ) );
-
-		foreach ( $meta as $m ) :
-
-			if ( !in_array( $m->meta_key, $meta_keys ) )
-				delete_term_meta( $term_id, $m->meta_key );
-
-		endforeach;
-
-
 	} // END save_term_meta
-
-
-
-	/**
-	 * Setup blog
-	 *
-	 * @static
-	 * @access public
-	 * @param int $blog_id Blog ID
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since  1.0.0
-	 **/
-	static public function setup_blog( $blog_id = FALSE )
-	{
-
-		global $wpdb;
-
-
-		if ( $blog_id !== FALSE )
-			switch_to_blog( $blog_id );
-
-		$charset_collate = '';
-
-		if ( ! empty( $wpdb->charset ) )
-			$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
-
-		if ( ! empty( $wpdb->collate ) )
-			$charset_collate .= " COLLATE $wpdb->collate";
-
-		$tables = $wpdb->get_results( "show tables like '{$wpdb->prefix}term_meta'" );
-
-		if ( !count( $tables ) )
-			$wpdb->query( "CREATE TABLE {$wpdb->prefix}term_meta (
-				meta_id bigint(20) unsigned NOT NULL auto_increment,
-				taxonomy_id bigint(20) unsigned NOT NULL default '0',
-				meta_key varchar(255) default NULL,
-				meta_value longtext,
-				PRIMARY KEY	(meta_id),
-				KEY taxonomy_id (taxonomy_id),
-				KEY meta_key (meta_key)
-			) $charset_collate;" );
-
-	} // END setup_blog
-
-
-
-	/**
-	 * Ajax: Set delete table options
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since  1.2.0
-	 **/
-	public function set_delete_tables_option()
-	{
-
-		if ( !current_user_can( 'manage_options' ) )
-			return;
-
-		if ( !wp_verify_nonce( $_POST['nonce'], 'taxonomy-meta-ui-options' ) )
-			return;
-
-		update_option( 'taxonomy-meta-ui-delete-tables', $_POST['value'] );
-		die('1');
-
-	} // END set_delete_tables_option
-
 
 
 	/**

@@ -63,6 +63,10 @@ Remove custom field support for $taxonomy
 
 ## Changelog
 
+### 1.3.0
+
+* Fixing things…
+
 ### 1.2
 
 * Added: `term_fields_$taxonomy` filter

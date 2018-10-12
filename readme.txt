@@ -3,8 +3,8 @@ Contributors: Horttcore
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3X7QY649K36X4
 Tags: Taxonomy, Term, Meta, UI
 Requires at least: 4.2
-Tested up to: 4.2
-Stable tag: 1.0
+Tested up to: 5.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,10 @@ Remove custom field support for $taxonomy
 None yet
 
 == Changelog ==
+
+= 1.3.0 =
+
+* Fixing things…
 
 = 1.2 =
 
