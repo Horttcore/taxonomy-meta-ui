@@ -1,18 +1,17 @@
 === Taxonomy Meta UI ===
 Contributors: Horttcore
-Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3X7QY649K36X4
-Tags: Taxonomy, Term, Meta, UI
-Requires at least: 4.2
-Tested up to: 5.0
-Stable tag: 1.2.1
+Tags: Taxonomy, Term, Meta, UI, Block Bindings
+Requires at least: 5.8
+Tested up to: 6.9
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Custom field support for terms
+Custom field support for taxonomy terms with REST API and block binding support.
 
 == Description ==
 
-Add as many custom values as you want, or define static fields which are always visible.
+Add custom term meta via a UI, or define static fields with text, textarea, or select inputs. Supports custom render, sanitize, escape, and auth callbacks. Exposes registered fields to REST and the block bindings API.
 
 == Installation ==
 
@@ -20,32 +19,23 @@ Add as many custom values as you want, or define static fields which are always 
 
 == Frequently Asked Questions ==
 
-= Filters =
+= How do I register static fields? =
 
-Add static fields to all taxonomies
-`term_fields`
+Use the `term_fields` or `term_fields_{$taxonomy}` filters. See README.md in the plugin directory.
 
-Add static fields for $taxonomy
-`term_fields_$taxonomy`
+= How do I use block bindings? =
 
-Remove all custom field support
-`has_custom_fields`
-
-Remove custom field support for $taxonomy
-`$taxonomy_has_custom_fields`
-
-== Screenshots ==
-
-1. New term screen with custom fields
-2. Edit term screen with custom fields
-3. New term screen with custom fields and static field `foo`
-4. Edit term screen with custom fields and static field `foo`
-
-== Upgrade Notice ==
-
-None yet
+Bind to `taxonomy-meta-ui/term-meta` with `args.key`, or use the per-field source `taxonomy-meta-ui/{field-name}`.
 
 == Changelog ==
+
+= 1.5.0 =
+
+* Security fixes, select fields, callbacks, block bindings, bug fixes
+
+= 1.4.0 =
+
+* REST API registration for static fields
 
 = 1.3.0 =
 
@@ -53,38 +43,12 @@ None yet
 
 = 1.2 =
 
-* Added: `term_fields_$taxonomy` filter
-* Added: `$taxonomy_has_custom_fields` filter
-* Added: `has_custom_fields` filter
-* Added: `$taxonomy_has_custom_fields` filter
-* Added: Deinstall routine
-* Added: Placeholder parameter for static fields
-* Removed: `taxonomy-meta-taxonomies filter
+* Added taxonomy-specific filters and custom field toggles
 
 = 1.1 =
 
-* Added: `term_fields` filter
-* Enhancement: Create predefined meta fields
-* Changed: Term meta table renamed
+* Added `term_fields` filter and predefined meta fields
 
 = 1.0 =
 
 * Initial release
-
-== Arbitrary section ==
-
-= add_term_meta =
-
-`add_term_meta( $term_id, $meta_key, $meta_value, $unique = FALSE )`
-
-= update_term_meta =
-
-`update_term_meta( $term_id, $meta_key, $meta_value, $prev_value = '' )`
-
-= delete_term_meta =
-
-`delete_term_meta( $term_id, $meta_key, $meta_value = '' )`
-
-= get_term_meta =
-
-`get_term_meta( $term_id, $key, $single = FALSE)`

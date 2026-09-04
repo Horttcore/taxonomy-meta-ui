@@ -1,0 +1,14 @@
+parameters:
+	level: 5
+	phpVersion: 70400
+	inferPrivatePropertyTypeFromConstructor: true
+	paths:
+		- plugin.php
+		- classes
+		- index.php
+		- scripts
+		- styles
+		- languages
+	excludePaths:
+		- vendor
+		- node_modules

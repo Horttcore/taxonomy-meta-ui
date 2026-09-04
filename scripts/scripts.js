@@ -1,97 +1,124 @@
-jQuery(document).ready(function(){
+jQuery( document ).ready( function( $ ) {
+	const Plugin = {
 
-	var Plugin = {
+		init() {
+			Plugin.$body = $( 'body' );
+			Plugin.$newMeta = $( '#new-meta' );
+			Plugin.$metaList = $( '#meta-list' );
+			Plugin.$deleteList = $( '#meta-delete-list' );
+			Plugin.$keySelect = Plugin.$newMeta.find( 'select[name="meta_keys"]' );
+			Plugin.$newKey = Plugin.$newMeta.find( '.taxonomy-meta-ui-new-key' );
+			Plugin.$newValue = Plugin.$newMeta.find( '.taxonomy-meta-ui-new-value' );
+			Plugin.$enterNew = Plugin.$newMeta.find( '.taxonomy-meta-ui-enter-new' );
+			Plugin.$cancelNew = Plugin.$newMeta.find( '.taxonomy-meta-ui-cancel-new' );
+			Plugin.$addMeta = $( '#add-meta' );
 
-		init:function(){
-
-			// Cache
-			Plugin.body = jQuery('body');
-			Plugin.metaKeys = jQuery('select[name="meta_keys"]');
-			Plugin.addMetaButton = jQuery('#add-meta');
-			Plugin.enterNewButton = jQuery('#enternew');
-			Plugin.cancelNewButton = jQuery('#cancelnew');
-			Plugin.metaList = jQuery('#meta-list');
-			Plugin.metaKey = jQuery('#meta_key');
-			Plugin.metaValue = jQuery('#meta_value');
-			Plugin.isNewTerm = Plugin.metaKey.parents('.form-field:first').hasClass('term-custom-fields-new');
-			Plugin.submit = jQuery('#submit');
-
-			// Go
 			Plugin.bindings();
-
 		},
 
-		bindings:function(){
-
-			Plugin.addMetaButton.click(function(e){
-				e.preventDefault();
+		bindings() {
+			Plugin.$addMeta.on( 'click', function( event ) {
+				event.preventDefault();
 				Plugin.addTermMeta();
-			});
+			} );
 
-			Plugin.cancelNewButton.click(function(e){
-				e.preventDefault();
+			Plugin.$cancelNew.on( 'click', function( event ) {
+				event.preventDefault();
 				Plugin.cancelNew();
-			});
+			} );
 
-			Plugin.enterNewButton.click(function(e){
-				e.preventDefault();
+			Plugin.$enterNew.on( 'click', function( event ) {
+				event.preventDefault();
 				Plugin.enterNew();
-			});
+			} );
 
-			Plugin.metaKeys.change(function(e){
-				e.preventDefault();
-				Plugin.metaKey.val(Plugin.metaKeys.val());
-			});
+			Plugin.$keySelect.on( 'change', function() {
+				Plugin.$newKey.val( Plugin.$keySelect.val() );
+			} );
 
-			Plugin.body.on('click', '.delete-meta-button',function(e){
-				e.preventDefault();
-				jQuery(this).parents('.meta-field:first').remove();
-			});
+			Plugin.$body.on( 'click', '.delete-meta-button', function( event ) {
+				event.preventDefault();
 
-			Plugin.submit.click(function(e){
-				if ( Plugin.isNewTerm )
-					Plugin.metaList.html('');
-			});
+				const $field = $( this ).closest( '.meta-field' );
+				const metaKey = $field.data( 'metaKey' ) || $field.find( '.meta_key' ).val();
 
+				if ( metaKey ) {
+					Plugin.$deleteList.append(
+						$( '<input>', {
+							type: 'hidden',
+							name: 'meta_delete[]',
+							value: metaKey,
+						} ),
+					);
+				}
+
+				$field.remove();
+			} );
 		},
 
-		addTermMeta:function(){
+		addTermMeta() {
+			const metaKey = Plugin.$newKey.val();
 
-			if ( '' === Plugin.metaKey.val() )
+			if ( '' === metaKey ) {
 				return;
+			}
 
-			var output = '<div class="meta-field"><input name="meta_key[]" class="meta_key" type="text" value="' + Plugin.metaKey.val() + '" placeholder="' + taxonomyMetaUI.name + '">' +
-						 '<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="' + taxonomyMetaUI.value + '">' + Plugin.metaValue.val() + '</textarea>' +
-						 '<a class="button delete-meta-button" href="#">' + taxonomyMetaUI.delete + '</a></div>';
+			const $field = $( '<div>', { class: 'meta-field', 'data-meta-key': metaKey } );
 
-			Plugin.metaList.append(output);
+			$field.append(
+				$( '<input>', {
+					name: 'meta_key[]',
+					class: 'meta_key',
+					type: 'text',
+					value: metaKey,
+					placeholder: taxonomyMetaUI.name,
+				} ),
+			);
+
+			$field.append(
+				$( '<textarea>', {
+					name: 'meta_value[]',
+					class: 'meta_value',
+					rows: 2,
+					placeholder: taxonomyMetaUI.value,
+					text: Plugin.$newValue.val(),
+				} ),
+			);
+
+			$field.append(
+				$( '<a>', {
+					class: 'button delete-meta-button',
+					href: '#',
+					text: taxonomyMetaUI.delete,
+				} ),
+			);
+
+			Plugin.$metaList.append( $field );
 			Plugin.cleanMetaFields();
-
 		},
 
-		cancelNew:function(){
-			Plugin.metaKeys.show();
-			Plugin.metaKey.hide();
-			Plugin.metaKey.val('');
-			Plugin.enterNewButton.show();
-			Plugin.cancelNewButton.hide();
+		cancelNew() {
+			Plugin.$keySelect.show();
+			Plugin.$newKey.hide().val( '' );
+			Plugin.$enterNew.show();
+			Plugin.$cancelNew.hide();
 		},
 
-		cleanMetaFields:function(){
-			Plugin.metaKeys.val('');
-			Plugin.metaKey.val('');
-			Plugin.metaValue.val('');
+		cleanMetaFields() {
+			Plugin.$keySelect.val( '' );
+			Plugin.$newKey.val( '' );
+			Plugin.$newValue.val( '' );
 		},
 
-		enterNew:function(){
-			Plugin.metaKeys.hide();
-			Plugin.metaKey.show().focus();
-			Plugin.enterNewButton.hide();
-			Plugin.cancelNewButton.show();
+		enterNew() {
+			Plugin.$keySelect.hide();
+			Plugin.$newKey.show().trigger( 'focus' );
+			Plugin.$enterNew.hide();
+			Plugin.$cancelNew.show();
 		},
-
 	};
 
-	Plugin.init();
-
-});
+	if ( $( '#new-meta' ).length ) {
+		Plugin.init();
+	}
+} );

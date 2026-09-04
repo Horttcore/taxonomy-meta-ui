@@ -6,31 +6,35 @@
 	margin: 0 0 5px;
 }
 
-#meta_value {
+.taxonomy-meta-ui-new-value {
 	margin: .5rem 0;
 }
 
-#enternew,
-#cancelnew {
+.taxonomy-meta-ui-enter-new,
+.taxonomy-meta-ui-cancel-new {
 	display: inline-block;
 	text-decoration: none;
 }
 
 #selectnew,
-#enternew {
+.taxonomy-meta-ui-enter-new {
 	display: inline-block;
 	margin-bottom: 5px;
 }
 
-#cancelnew {
+.taxonomy-meta-ui-cancel-new {
 	margin-bottom: 1rem;
 }
 
-#meta_key,
-#cancelnew {
+.taxonomy-meta-ui-new-key,
+.taxonomy-meta-ui-cancel-new {
 	display: none;
 }
 
 .field-description {
 	font-style: italic;
+}
+
+.taxonomy-meta-ui-delete-list {
+	display: none;
 }

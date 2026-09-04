@@ -1,472 +1,425 @@
 <?php
-// Make sure we don't expose any info if called directly
-if ( !function_exists( 'add_action' ) ) {
-	echo 'Hi there!  I\'m just a plugin, not much I can do when called directly.';
+/**
+ * Admin UI for Taxonomy Meta UI.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-
-
-/**
- *  Taxonomy Meta UI
- */
-final class Taxonomy_Meta_UI_Admin
-{
-
-
+final class Taxonomy_Meta_UI_Admin {
 
 	/**
-	 * Version number
-	 *
 	 * @var string
-	 **/
-	protected $version = '1.3.0';
-
-
-	/**
-	 *
-	 * Constructor
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
 	 */
-	public function __construct()
-	{
-
-		add_action( 'admin_print_scripts-edit-tags.php', [$this, 'admin_enqueue_scripts'] );
-		add_action( 'admin_print_scripts-edit-tags.php', [$this, 'admin_enqueue_styles']) ;
-		add_action( 'admin_print_scripts-term.php', [$this, 'admin_enqueue_scripts'] );
-		add_action( 'admin_print_scripts-term.php', [$this, 'admin_enqueue_styles']) ;
-		add_action( 'plugins_loaded', [$this, 'load_plugin_textdomain'] );
-		add_action( 'wp_loaded', [$this, 'register_tax_hooks'] );
-		add_action( 'wpmu_new_blog', 'Taxonomy_Meta_UI_Admin::setup_new_blog', 10, 6 );
-
-	} // END __construct
-
+	private $version;
 
 	/**
-	 * Register javascripts
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function admin_enqueue_scripts()
-	{
-		wp_register_script( 'taxonomy-meta-ui', plugins_url( '../scripts/scripts.js', __FILE__ ), array(), $this->version, TRUE );
-		wp_localize_script( 'taxonomy-meta-ui', 'taxonomyMetaUI', array(
-			'name' => __( 'Name' ),
-			'value' => __( 'Value' ),
-			'delete' => __( 'Delete' ),
-		) );
+	 * @var array<string, array<string, array<string, mixed>>>
+	 */
+	private $field_cache = array();
+
+	public function __construct( string $version ) {
+		$this->version = $version;
+
+		add_action( 'admin_print_scripts-edit-tags.php', array( $this, 'admin_enqueue_scripts' ) );
+		add_action( 'admin_print_scripts-edit-tags.php', array( $this, 'admin_enqueue_styles' ) );
+		add_action( 'admin_print_scripts-term.php', array( $this, 'admin_enqueue_scripts' ) );
+		add_action( 'admin_print_scripts-term.php', array( $this, 'admin_enqueue_styles' ) );
+		add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );
+		add_action( 'wp_loaded', array( $this, 'register_tax_hooks' ) );
+	}
+
+	public function admin_enqueue_scripts(): void {
+		wp_register_script(
+			'taxonomy-meta-ui',
+			plugins_url( '../scripts/scripts.js', __FILE__ ),
+			array( 'jquery' ),
+			$this->version,
+			true
+		);
+
+		wp_localize_script(
+			'taxonomy-meta-ui',
+			'taxonomyMetaUI',
+			array(
+				'name'   => __( 'Name', 'taxonomy-meta-ui' ),
+				'value'  => __( 'Value', 'taxonomy-meta-ui' ),
+				'delete' => __( 'Delete', 'taxonomy-meta-ui' ),
+			)
+		);
+
 		wp_enqueue_script( 'taxonomy-meta-ui' );
+	}
 
-	} // END admin_enqueue_scripts
-
-
-	/**
-	 * Register javascripts
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function admin_enqueue_styles()
-	{
-		wp_register_style( 'taxonomy-meta-ui', plugins_url( '../styles/styles.css', __FILE__ ), array(), $this->version );
+	public function admin_enqueue_styles(): void {
+		wp_register_style(
+			'taxonomy-meta-ui',
+			plugins_url( '../styles/styles.css', __FILE__ ),
+			array(),
+			$this->version
+		);
 		wp_enqueue_style( 'taxonomy-meta-ui' );
+	}
 
-	} // END admin_enqueue_scripts
+	public function add_form_fields(): void {
+		$screen   = get_current_screen();
+		$taxonomy = $screen ? $screen->taxonomy : '';
 
-
-	/**
-	 * Term meta on add tag screen
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function add_form_fields()
-	{
-
-		$screen = get_current_screen();
-
-		$this->add_static_form_fields( get_taxonomy( $screen->taxonomy ) );
-
-		if ( FALSE === apply_filters( $screen->taxonomy . '_has_custom_fields', TRUE ) )
+		if ( ! $taxonomy || ! Taxonomy_Meta_UI_Fields::is_taxonomy_enabled( $taxonomy ) ) {
 			return;
+		}
 
-		if ( FALSE === apply_filters( 'has_custom_fields', TRUE ) )
+		$fields = $this->get_fields( $taxonomy, 0 );
+
+		if ( empty( $fields ) && ! Taxonomy_Meta_UI_Fields::has_custom_fields_ui( $taxonomy ) ) {
 			return;
+		}
 
+		wp_nonce_field( 'taxonomy_meta_ui_save', 'taxonomy_meta_ui_nonce' );
+		$this->render_static_form_fields( $taxonomy, null, 'add' );
+
+		if ( ! Taxonomy_Meta_UI_Fields::has_custom_fields_ui( $taxonomy ) ) {
+			return;
+		}
 		?>
-
 		<div class="form-field term-custom-fields term-custom-fields-new">
-
-			<label><?php _e( 'Custom Fields' ); ?></label>
-
-			<div id="meta-list"></div>
-
-			<div id="new-meta">
-				<?php $this->dropdown_meta_fields() ?>
-				<input name="meta_key[]" class="meta_key" id="meta_key" type="text" placeholder="<?php _e( 'Name' ) ?>">
-				<a id="enternew" href="#"><?php _e( 'Enter new' ) ?></a>
-				<a id="cancelnew" href="#"><?php _e( 'Cancel' ) ?></a>
-
-				<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"></textarea>
-
-				<a class="button" href="#" id="add-meta"><?php _e( 'Add Custom Field' ) ?></a>
+			<label><?php esc_html_e( 'Custom Fields', 'taxonomy-meta-ui' ); ?></label>
+			<div id="meta-list" class="taxonomy-meta-ui-meta-list"></div>
+			<div id="new-meta" class="taxonomy-meta-ui-new-meta">
+				<?php $this->dropdown_meta_fields( $taxonomy ); ?>
+				<input name="meta_key[]" class="meta_key taxonomy-meta-ui-new-key" type="text" placeholder="<?php esc_attr_e( 'Name', 'taxonomy-meta-ui' ); ?>">
+				<a id="enternew" class="taxonomy-meta-ui-enter-new" href="#"><?php esc_html_e( 'Enter new', 'taxonomy-meta-ui' ); ?></a>
+				<a id="cancelnew" class="taxonomy-meta-ui-cancel-new" href="#"><?php esc_html_e( 'Cancel', 'taxonomy-meta-ui' ); ?></a>
+				<textarea name="meta_value[]" class="meta_value taxonomy-meta-ui-new-value" rows="2" placeholder="<?php esc_attr_e( 'Value', 'taxonomy-meta-ui' ); ?>"></textarea>
+				<a class="button" href="#" id="add-meta"><?php esc_html_e( 'Add Custom Field', 'taxonomy-meta-ui' ); ?></a>
 			</div>
-
+			<div id="meta-delete-list" class="taxonomy-meta-ui-delete-list" aria-hidden="true"></div>
 		</div>
-
 		<?php
+	}
 
-	} // END add_form_fields
+	public function edit_form_fields( $tag ): void {
+		$taxonomy = $tag->taxonomy ?? '';
 
-
-	/**
-	 * Term meta on add tag screen
-	 *
-	 * @access public
-	 * @param obj $taxonomy Taxonomy object
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.1.0
-	 **/
-	public function add_static_form_fields( $taxonomy )
-	{
-
-		$fields = $this->get_static_fields();
-
-		if ( empty( $fields ) )
+		if ( ! $taxonomy || ! Taxonomy_Meta_UI_Fields::is_taxonomy_enabled( $taxonomy ) ) {
 			return;
+		}
 
-		foreach ( $fields as $field ) :
+		$fields = $this->get_fields( $taxonomy, (int) $tag->term_id );
 
-			?>
+		if ( empty( $fields ) && ! Taxonomy_Meta_UI_Fields::has_custom_fields_ui( $taxonomy ) ) {
+			return;
+		}
 
-			<div class="form-field term-custom-fields term-custom-fields-new">
+		wp_nonce_field( 'taxonomy_meta_ui_save', 'taxonomy_meta_ui_nonce' );
+		$this->render_static_form_fields( $taxonomy, $tag, 'edit' );
 
-				<label><?php echo $field['label'] ?></label>
-				<input name="meta_key[]" class="meta_key" id="meta_key" type="hidden" value="<?php echo $field['name'] ?>">
-				<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="<?php if ( isset( $field['placeholder'] ) ) echo esc_attr( $field['placeholder'] ) ?>"></textarea>
-
-				<?php if ( isset( $field['description'] ) && '' !== $field['description'] ) : ?>
-
-					<?php echo apply_filters( 'the_content', $field['description'] ) ?>
-
-				<?php endif; ?>
-
-			</div>
-
-			<?php
-
-		endforeach;
-
-	} // END add_static_form_fields
-
-
-	/**
-	 * Get all static fields
-	 *
-	 * @access public
-	 * @return array Term meta fields
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.1.0
-	 **/
-	private function get_static_fields()
-	{
-
-		$screen = get_current_screen();
-		$taxonomy = ( isset( $screen->taxonomy ) ) ? $screen->taxonomy : FALSE;
-		$term_id = ( isset( $_GET['tag_ID'] ) ) ? sanitize_text_field( $_GET['tag_ID'] ) : FALSE;
-		$fields = apply_filters( 'term_fields_' . $taxonomy, array(), $term_id );
-
-		return apply_filters( 'term_fields', $fields, $taxonomy, $term_id );
-
-	} // END get_static_fields
-
-
-	/**
-	 * Dropdown for term meta
-	 *
-	 * @access public
-	 * @return void
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function dropdown_meta_fields()
-	{
-
-		global $wpdb;
-
-		$limit = apply_filters( 'postmeta_form_limit', 30 );
-		$sql = "SELECT meta_key
-			FROM $wpdb->termmeta
-			GROUP BY meta_key
-			HAVING meta_key NOT LIKE %s
-			ORDER BY meta_key
-			LIMIT %d";
-		$keys = $wpdb->get_col( $wpdb->prepare( $sql, $wpdb->esc_like( '_' ) . '%', $limit ) );
-
+		if ( ! Taxonomy_Meta_UI_Fields::has_custom_fields_ui( $taxonomy ) ) {
+			return;
+		}
 		?>
-		<select name="meta_keys" id="selectnew">
-			<option value=""><?php _e( '&mdash; Select &mdash;' ) ?></option>
-			<?php foreach ( $keys as $key ) : ?>
-				<option><?php echo $key ?></option>
-			<?php endforeach; ?>
-		</select>
-		<?php
-
-	} // END dropdown_meta_fields
-
-
-	/**
-	 * Tag Color input field on edit tag screen
-	 *
-	 * @access public
-	 * @param obj $tag Tag object
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function edit_form_fields( $tag )
-	{
-
-		$this->edit_static_form_fields( $tag );
-
-		?>
-
-		<tr class="form-field">
+		<tr class="form-field taxonomy-meta-ui-custom-fields">
 			<th scope="row" valign="top">
-				<label for="term-meta"><?php _e( 'Custom Fields' ); ?></label>
+				<label for="term-meta"><?php esc_html_e( 'Custom Fields', 'taxonomy-meta-ui' ); ?></label>
 			</th>
 			<td>
-
-				<div id="meta-list"><?php $this->list_meta( $tag->term_id ) ?></div>
-
-				<div id="new-meta">
-
-					<?php $this->dropdown_meta_fields() ?>
-
-					<input name="meta_key[]" class="meta_key" id="meta_key" type="text" placeholder="<?php _e( 'Name' ) ?>">
-					<a id="enternew" href="#"><?php _e( 'Enter new' ) ?></a>
-					<a id="cancelnew" href="#"><?php _e( 'Cancel' ) ?></a>
-
-					<textarea name="meta_value[]" class="meta_value" id="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"></textarea>
-
-					<a class="button" href="#" id="add-meta"><?php _e( 'Add Custom Field' ) ?></a>
-
+				<div id="meta-list" class="taxonomy-meta-ui-meta-list"><?php $this->list_meta( (int) $tag->term_id, $taxonomy ); ?></div>
+				<div id="new-meta" class="taxonomy-meta-ui-new-meta">
+					<?php $this->dropdown_meta_fields( $taxonomy ); ?>
+					<input name="meta_key[]" class="meta_key taxonomy-meta-ui-new-key" type="text" placeholder="<?php esc_attr_e( 'Name', 'taxonomy-meta-ui' ); ?>">
+					<a id="enternew" class="taxonomy-meta-ui-enter-new" href="#"><?php esc_html_e( 'Enter new', 'taxonomy-meta-ui' ); ?></a>
+					<a id="cancelnew" class="taxonomy-meta-ui-cancel-new" href="#"><?php esc_html_e( 'Cancel', 'taxonomy-meta-ui' ); ?></a>
+					<textarea name="meta_value[]" class="meta_value taxonomy-meta-ui-new-value" rows="2" placeholder="<?php esc_attr_e( 'Value', 'taxonomy-meta-ui' ); ?>"></textarea>
+					<a class="button" href="#" id="add-meta"><?php esc_html_e( 'Add Custom Field', 'taxonomy-meta-ui' ); ?></a>
 				</div>
-
+				<div id="meta-delete-list" class="taxonomy-meta-ui-delete-list" aria-hidden="true"></div>
 			</td>
 		</tr>
-
 		<?php
-
-	} // END edit_form_fields
-
+	}
 
 	/**
-	 * Static fields on edit term screen
-	 *
-	 * @access private
-	 * @param obj $tag Tag object
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.1.0
-	 **/
-	private function edit_static_form_fields( $tag )
-	{
-
-		$fields = $this->get_static_fields();
-
-		if ( empty( $fields ) )
-			return;
-
-		foreach ( $fields as $field ) :
-
-			if ( !isset( $field['name'] ) || '' === $field['name'] )
-				continue;
-
-			?>
-
-			<tr class="form-field">
-				<th scope="row" valign="top">
-					<label for="<?php echo esc_attr( $field['name'] ) ?>"><?php echo $field['label'] ?></label>
-				</th>
-				<td>
-					<input name="meta_key[]" class="meta_key" type="hidden" value="<?php echo esc_attr( $field['name'] ) ?>">
-					<textarea name="meta_value[]" class="meta_value" id="<?php echo esc_attr( $field['name'] ) ?>" rows="2" placeholder="<?php if ( isset( $field['placeholder'] ) ) echo esc_attr( $field['placeholder'] ) ?>"><?php echo wp_kses_post( get_term_meta( $tag->term_id, $field['name'], TRUE ) ) ?></textarea>
-
-					<?php if ( isset( $field['description'] ) && '' !== $field['description'] ) : ?>
-
-						<div class="field-description">
-							<?php echo apply_filters( 'the_content', $field['description'] ) ?>
-						</div><!-- .field-description -->
-
-					<?php endif; ?>
-
-				</td>
-			</tr>
-
-			<?php
-
-		endforeach;
-
-	} // END edit_static_form_fields
-
-
-	/**
-	 * list meta
-	 *
-	 * @access private
-	 * @param obj $tag Tag object
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 * @todo Update meta button
-	 **/
-	private function list_meta( $term_id )
-	{
-
-		global $wpdb;
-
-		$screen = get_current_screen();
-
-		$sql = "SELECT * FROM $wpdb->termmeta WHERE term_id = %d";
-		$meta = $wpdb->get_results( $wpdb->prepare( $sql, intval( $term_id  ) ) );
-
-		if ( !$meta )
-			return;
-
-		foreach ( $meta as $m ) :
-
-				if ( isset( $this->get_static_fields()[$m->meta_key] ) )
-					continue;
-
-				?>
-
-				<div class="meta-field">
-
-					<input name="meta_key[]" class="meta_key" type="text" value="<?php echo esc_attr( $m->meta_key ) ?>" placeholder="<?php _e( 'Name' ) ?>">
-
-					<?php if ( isset( $m->label ) ) : ?>
-						<label>
-							<span class="meta-label"><?php echo $m->label ?></span><br>
-					<?php endif; ?>
-
-						<textarea name="meta_value[]" class="meta_value" rows="2" placeholder="<?php _e( 'Value' ) ?>"><?php echo esc_attr( $m->meta_value ) ?></textarea><br>
-
-					<?php if ( isset( $m->label ) ) : ?>
-						</label>
-					<?php endif; ?>
-
-					<a class="button delete-meta-button" href="#"><?php _e( 'Delete' ) ?></a> <!-- <a class="button update-meta-button" href="#"><?php _e( 'Update' ) ?></a> -->
-
-				</div><!-- .meta-field -->
-
-				<?php
-
-		endforeach;
-
-	} // END list_meta
-
-
-	/**
-	 * Load plugin textdomain
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
+	 * @param string       $taxonomy Taxonomy slug.
+	 * @param WP_Term|null $term     Term object.
+	 * @param string       $context  `add` or `edit`.
 	 */
-	public function load_plugin_textdomain()
-	{
+	private function render_static_form_fields( string $taxonomy, ?WP_Term $term, string $context ): void {
+		$term_id = $term ? (int) $term->term_id : 0;
+		$fields  = $this->get_fields( $taxonomy, $term_id );
 
-		load_plugin_textdomain( 'taxonomy-meta-ui', false, dirname( plugin_basename( __FILE__ ) ) . '/../languages/' );
+		if ( empty( $fields ) ) {
+			return;
+		}
 
-	} // END load_plugin_textdomain
+		foreach ( $fields as $field ) {
+			$value = $term_id ? get_term_meta( $term_id, $field['name'], true ) : '';
 
-
-	/**
-	 * Register hooks
-	 *
-	 * @access public
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since  1.0.0
-	 **/
-	public function register_tax_hooks()
-	{
-
-		$taxonomies = get_taxonomies();
-
-		foreach ( $taxonomies as $taxonomy ) :
-
-			if ( FALSE === apply_filters( $taxonomy . '_has_meta', TRUE ) )
-				continue;
-
-			add_action( $taxonomy . '_add_form_fields', [$this, 'add_form_fields']);
-			add_action( $taxonomy . '_edit_form_fields', [$this, 'edit_form_fields']);
-			add_action( 'edited_' . $taxonomy, array( $this , 'save_term_meta' ), 10, 2 );
-			add_action( 'created_' . $taxonomy, array( $this , 'save_term_meta' ), 10, 2 );
-
-		endforeach;
-
-	} // END register_tax_hooks
-
+			if ( 'edit' === $context ) {
+				$this->render_static_field_edit_row( $field, $value, $term );
+			} else {
+				$this->render_static_field_add_row( $field, $value );
+			}
+		}
+	}
 
 	/**
-	 * Save new term meta
-	 *
-	 * @access public
-	 * @param int $term_id Term ID
-	 * @param int $tt_id Taxonomy term ID
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since 1.0.0
-	 **/
-	public function save_term_meta( $term_id = FALSE, $tt_id = FALSE )
-	{
+	 * @param array<string,mixed> $field Field definition.
+	 * @param mixed             $value Current value.
+	 */
+	private function render_static_field_add_row( array $field, $value ): void {
+		?>
+		<div class="form-field term-custom-fields term-custom-fields-new taxonomy-meta-ui-static-field" data-field="<?php echo esc_attr( $field['name'] ); ?>">
+			<label for="<?php echo esc_attr( 'taxonomy-meta-ui-' . $field['name'] ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
+			<?php $this->render_field_input( $field, $value, null, 'add' ); ?>
+			<?php $this->render_field_description( $field ); ?>
+		</div>
+		<?php
+	}
 
+	/**
+	 * @param array<string,mixed> $field Field definition.
+	 * @param mixed             $value Current value.
+	 * @param WP_Term|null      $term  Term object.
+	 */
+	private function render_static_field_edit_row( array $field, $value, ?WP_Term $term ): void {
+		?>
+		<tr class="form-field taxonomy-meta-ui-static-field" data-field="<?php echo esc_attr( $field['name'] ); ?>">
+			<th scope="row" valign="top">
+				<label for="<?php echo esc_attr( 'taxonomy-meta-ui-' . $field['name'] ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
+			</th>
+			<td>
+				<?php $this->render_field_input( $field, $value, $term, 'edit' ); ?>
+				<?php $this->render_field_description( $field ); ?>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
+	 * @param array<string,mixed> $field   Field definition.
+	 * @param mixed               $value   Current value.
+	 * @param WP_Term|null        $term    Term object.
+	 * @param string              $context `add` or `edit`.
+	 */
+	private function render_field_input( array $field, $value, ?WP_Term $term, string $context ): void {
+		if ( is_callable( $field['render_callback'] ?? null ) ) {
+			call_user_func( $field['render_callback'], $field['name'], $value, $field, $term, $context );
+			return;
+		}
+
+		$field_id = 'taxonomy-meta-ui-' . $field['name'];
+
+		echo '<input type="hidden" name="meta_key[]" class="meta_key" value="' . esc_attr( $field['name'] ) . '">';
+
+		switch ( $field['type'] ?? 'textarea' ) {
+			case 'select':
+				echo '<select name="meta_value[]" class="meta_value" id="' . esc_attr( $field_id ) . '">';
+				foreach ( (array) ( $field['options'] ?? array() ) as $option_value => $option_label ) {
+					printf(
+						'<option value="%1$s" %2$s>%3$s</option>',
+						esc_attr( (string) $option_value ),
+						selected( (string) $value, (string) $option_value, false ),
+						esc_html( (string) $option_label )
+					);
+				}
+				echo '</select>';
+				break;
+
+			case 'text':
+				printf(
+					'<input type="text" name="meta_value[]" class="meta_value" id="%1$s" value="%2$s" placeholder="%3$s" />',
+					esc_attr( $field_id ),
+					esc_attr( (string) $value ),
+					esc_attr( $field['placeholder'] ?? '' )
+				);
+				break;
+
+			case 'textarea':
+			default:
+				printf(
+					'<textarea name="meta_value[]" class="meta_value" id="%1$s" rows="2" placeholder="%2$s">%3$s</textarea>',
+					esc_attr( $field_id ),
+					esc_attr( $field['placeholder'] ?? '' ),
+					Taxonomy_Meta_UI_Fields::escape_value( $value, $field ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Already escaped.
+				);
+				break;
+		}
+	}
+
+	/**
+	 * @param array<string,mixed> $field Field definition.
+	 */
+	private function render_field_description( array $field ): void {
+		if ( empty( $field['description'] ) ) {
+			return;
+		}
+
+		echo '<div class="field-description">' . wp_kses_post( $field['description'] ) . '</div>';
+	}
+
+	public function dropdown_meta_fields( string $taxonomy ): void {
 		global $wpdb;
 
-		if ( !$_POST['meta_key'] )
+		$limit  = (int) apply_filters( 'postmeta_form_limit', 30 ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
+		$fields = $this->get_fields( $taxonomy, 0 );
+
+		$keys = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT meta_key FROM {$wpdb->termmeta} WHERE meta_key NOT LIKE %s ORDER BY meta_key LIMIT %d",
+				$wpdb->esc_like( '_' ) . '%',
+				$limit
+			)
+		);
+
+		?>
+		<select name="meta_keys" id="selectnew" class="taxonomy-meta-ui-key-select">
+			<option value=""><?php esc_html_e( '&mdash; Select &mdash;', 'taxonomy-meta-ui' ); ?></option>
+			<?php
+			foreach ( (array) $keys as $key ) {
+				if ( isset( $fields[ $key ] ) ) {
+					continue;
+				}
+
+				printf( '<option value="%s">%s</option>', esc_attr( $key ), esc_html( $key ) );
+			}
+			?>
+		</select>
+		<?php
+	}
+
+	private function list_meta( int $term_id, string $taxonomy ): void {
+		$fields       = $this->get_fields( $taxonomy, $term_id );
+		$static_names = array_keys( $fields );
+		$meta         = get_term_meta( $term_id );
+
+		if ( empty( $meta ) || ! is_array( $meta ) ) {
 			return;
+		}
 
-		$meta_keys = array();
+		foreach ( $meta as $meta_key => $values ) {
+			if ( in_array( $meta_key, $static_names, true ) ) {
+				continue;
+			}
 
-		$i = 0;
+			$value = is_array( $values ) ? reset( $values ) : $values;
+			?>
+			<div class="meta-field" data-meta-key="<?php echo esc_attr( $meta_key ); ?>">
+				<input type="hidden" name="taxonomy_meta_ui_tracked_keys[]" value="<?php echo esc_attr( $meta_key ); ?>">
+				<input name="meta_key[]" class="meta_key" type="text" value="<?php echo esc_attr( $meta_key ); ?>" placeholder="<?php esc_attr_e( 'Name', 'taxonomy-meta-ui' ); ?>">
+				<textarea name="meta_value[]" class="meta_value" rows="2" placeholder="<?php esc_attr_e( 'Value', 'taxonomy-meta-ui' ); ?>"><?php echo esc_textarea( (string) $value ); ?></textarea>
+				<a class="button delete-meta-button" href="#"><?php esc_html_e( 'Delete', 'taxonomy-meta-ui' ); ?></a>
+			</div>
+			<?php
+		}
+	}
 
-		// Add/Update meta
-		foreach ( $_POST['meta_key'] as $meta_key ) :
+	public function load_plugin_textdomain(): void {
+		load_plugin_textdomain(
+			'taxonomy-meta-ui',
+			false,
+			dirname( plugin_basename( __FILE__ ) ) . '/../languages/'
+		);
+	}
 
-			update_term_meta( $term_id, $meta_key, $_POST['meta_value'][$i] );
-			$meta_keys[] = $meta_key;
-			$i++;
+	public function register_tax_hooks(): void {
+		foreach ( get_taxonomies() as $taxonomy ) {
+			if ( ! Taxonomy_Meta_UI_Fields::is_taxonomy_enabled( $taxonomy ) ) {
+				continue;
+			}
 
-		endforeach;
+			add_action( $taxonomy . '_add_form_fields', array( $this, 'add_form_fields' ) );
+			add_action( $taxonomy . '_edit_form_fields', array( $this, 'edit_form_fields' ) );
+			add_action( 'edited_' . $taxonomy, array( $this, 'save_term_meta' ), 10, 2 );
+			add_action( 'created_' . $taxonomy, array( $this, 'save_term_meta' ), 10, 2 );
+		}
+	}
 
-	} // END save_term_meta
+	public function save_term_meta( $term_id = false, $tt_id = false ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress created_/edited_{taxonomy} signature.
+		$term_id = (int) $term_id;
 
+		if ( $term_id <= 0 ) {
+			return;
+		}
+
+		if ( empty( $_POST['taxonomy_meta_ui_nonce'] ) ) {
+			return;
+		}
+
+		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['taxonomy_meta_ui_nonce'] ) ), 'taxonomy_meta_ui_save' ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_term', $term_id ) ) {
+			return;
+		}
+
+		$term = get_term( $term_id );
+
+		if ( ! $term || is_wp_error( $term ) ) {
+			return;
+		}
+
+		$taxonomy = $term->taxonomy;
+		$fields   = $this->get_fields( $taxonomy, $term_id );
+
+		$meta_keys   = isset( $_POST['meta_key'] ) && is_array( $_POST['meta_key'] ) ? wp_unslash( $_POST['meta_key'] ) : array();
+		$meta_values = isset( $_POST['meta_value'] ) && is_array( $_POST['meta_value'] ) ? wp_unslash( $_POST['meta_value'] ) : array();
+		$deleted     = isset( $_POST['meta_delete'] ) && is_array( $_POST['meta_delete'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['meta_delete'] ) ) : array();
+		$tracked     = isset( $_POST['taxonomy_meta_ui_tracked_keys'] ) && is_array( $_POST['taxonomy_meta_ui_tracked_keys'] )
+			? array_map( 'sanitize_text_field', wp_unslash( $_POST['taxonomy_meta_ui_tracked_keys'] ) )
+			: array();
+
+		$saved_keys = array();
+
+		foreach ( $meta_keys as $index => $meta_key ) {
+			$meta_key = sanitize_text_field( (string) $meta_key );
+
+			if ( '' === $meta_key ) {
+				continue;
+			}
+
+			$raw_value = isset( $meta_values[ $index ] ) ? $meta_values[ $index ] : '';
+			$field     = $fields[ $meta_key ] ?? null;
+			$value     = Taxonomy_Meta_UI_Fields::sanitize_value( $raw_value, $field, $term_id );
+
+			update_term_meta( $term_id, $meta_key, $value );
+			$saved_keys[] = $meta_key;
+		}
+
+		$static_names = array_keys( $fields );
+
+		foreach ( $deleted as $delete_key ) {
+			if ( in_array( $delete_key, $static_names, true ) ) {
+				continue;
+			}
+
+			delete_term_meta( $term_id, $delete_key );
+		}
+
+		foreach ( $tracked as $tracked_key ) {
+			if ( in_array( $tracked_key, $static_names, true ) ) {
+				continue;
+			}
+
+			if ( in_array( $tracked_key, $saved_keys, true ) || in_array( $tracked_key, $deleted, true ) ) {
+				continue;
+			}
+
+			delete_term_meta( $term_id, $tracked_key );
+		}
+	}
 
 	/**
-	 * Setup new blog
-	 *
-	 * @static
-	 * @access public
-	 * @param int $blog_id Blog ID
-	 * @author Ralf Hortt <me@horttcore.de>
-	 * @since  1.0.0
-	 **/
-	static public function setup_new_blog( $blog_id, $user_id, $domain, $path, $site_id, $meta )
-	{
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function get_fields( string $taxonomy, $term_id = 0 ): array {
+		$cache_key = $taxonomy . ':' . (int) $term_id;
 
-		if ( !is_plugin_active_for_network( plugin_basename( __FILE__ ) ) )
-			return;
+		if ( ! isset( $this->field_cache[ $cache_key ] ) ) {
+			$this->field_cache[ $cache_key ] = Taxonomy_Meta_UI_Fields::get_fields( $taxonomy, $term_id );
+		}
 
-		$this->setup_blog( $blog_id );
-
-	} // END setup_new_blog
-
-
-
-} // END final class Taxonomy_Meta_UI_Admin
-
-new Taxonomy_Meta_UI_Admin;
+		return $this->field_cache[ $cache_key ];
+	}
+}

@@ -1,0 +1,58 @@
+{
+    "name": "ralfhortt/taxonomy-meta-ui",
+    "description": "Taxonomy meta with admin UI, REST API, and block binding support.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "wordpress",
+        "plugin",
+        "taxonomy",
+        "term-meta",
+        "custom-fields",
+        "block-bindings"
+    ],
+    "homepage": "https://github.com/Horttcore/taxonomy-meta-ui",
+    "authors": [
+        {
+            "name": "Ralf Hortt",
+            "email": "mail@ralfhortt.dev",
+            "homepage": "https://ralfhortt.dev"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/Horttcore/taxonomy-meta-ui/issues",
+        "source": "https://github.com/Horttcore/taxonomy-meta-ui"
+    },
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.1",
+        "szepeviktor/phpstan-wordpress": "^2.0",
+        "wp-coding-standards/wpcs": "^3.2"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "lint": [
+            "@lint:php",
+            "@lint:js"
+        ],
+        "lint:php": [
+            "@lint:phpcs",
+            "@phpstan"
+        ],
+        "lint:phpcs": "phpcs",
+        "lint:php:fix": "phpcbf",
+        "phpstan": "phpstan analyse --memory-limit=2048M",
+        "lint:js": "npm run lint:js",
+        "lint:js:fix": "npm run lint:js:fix"
+    }
+}

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ruleset name="Taxonomy Meta UI">
+	<description>WordPress Coding Standards for Taxonomy Meta UI.</description>
+
+	<file>.</file>
+
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/index.php</exclude-pattern>
+
+	<arg name="basepath" value="."/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+	<arg name="colors"/>
+	<arg value="ps"/>
+
+	<config name="minimum_supported_wp_version" value="5.8"/>
+
+	<rule ref="WordPress-Extra">
+		<!-- Existing class files use class.{name}.php rather than class-{name}.php. -->
+		<exclude name="WordPress.Files.FileName"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="taxonomy-meta-ui"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="taxonomy_meta_ui"/>
+				<element value="Taxonomy_Meta_UI"/>
+			</property>
+		</properties>
+	</rule>
+
+</ruleset>

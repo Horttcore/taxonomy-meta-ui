@@ -1,0 +1,22 @@
+{
+    "name": "taxonomy-meta-ui",
+    "version": "1.5.0",
+    "private": true,
+    "description": "Taxonomy meta with admin UI, REST API, and block binding support.",
+    "author": "Ralf Hortt <mail@ralfhortt.dev>",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://github.com/Horttcore/taxonomy-meta-ui",
+    "scripts": {
+        "lint": "npm run lint:js && npm run lint:php",
+        "lint:js": "eslint scripts",
+        "lint:js:fix": "eslint scripts --fix",
+        "lint:php": "composer run lint:php",
+        "lint:php:fix": "composer run lint:php:fix",
+        "phpstan": "composer run phpstan"
+    },
+    "devDependencies": {
+        "@wordpress/eslint-plugin": "^25.10.0",
+        "eslint": "^9.35.0",
+        "globals": "^16.3.0"
+    }
+}
